@@ -65,31 +65,31 @@ app.use(morgan("dev"));
 
 // ROUTER MIDDLEWARE
 // COUNTER
-app.use("/counters", counterRouter);
+app.use("/api/counters", counterRouter);
 
 // USERS
-app.use("/users", userRouter);
+app.use("/api/users", userRouter);
 
 // SEARCH
-app.use("/search", searchRouter);
+app.use("/api/search", searchRouter);
 
 // PROJECT
-app.use("/projects", projectRouter);
+app.use("/api/projects", projectRouter);
 
 // NOTIFICATIONS
-app.use("/notifications", notificationRouter);
+app.use("/api/notifications", notificationRouter);
 
 // CONVERSATIONS
-app.use("/conversations", conversationRouter);
+app.use("/api/conversations", conversationRouter);
 
 // MESSAGES
-app.use("/messages", messageRouter);
+app.use("/api/messages", messageRouter);
 
 // STONES
-app.use("/stones", stoneRouter);
+app.use("/api/stones", stoneRouter);
 
 // PROJECTS
-app.use("/projects", projectRouter);
+app.use("/api/projects", projectRouter);
 
 // ERROR HANDLER
 app.use(errorHandler);
