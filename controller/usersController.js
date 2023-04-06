@@ -122,7 +122,7 @@ export async function addUser(req, res, next) {
       new projects, please verify your email.</p>
 
       <p style="background-color: orange; border-radius: 7px; width: 80px; height: 20px; text-decoration: none;">
-      <a href="https://improof-be.onrender.com/users/verify/${verifyToken}">
+      <a href="https://improof.info/api/users/verify/${verifyToken}">
       Verify now</a></p>      
     
       <p>Welcome to improof!<br>
@@ -160,7 +160,7 @@ export async function verifyEmail(req, res, next) {
     //   data: "",
     //   user: updatedUser,
     // });
-    res.redirect(`https://improof-fe.vercel.app`);
+    res.redirect(`https://improof.info`);
     // if we have a frontend, we can direct the successful verification to the login page
   } catch (err) {
     next(err);
