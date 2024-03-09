@@ -1,7 +1,7 @@
 // I M P O R T   D E P E N D E N C I E S
 import { Schema, model } from "mongoose";
 
-const INITIALTHEME = ["c-DB2","bg-gDB"]
+const INITIALTHEME = ["c-DB2", "bg-gDB"];
 // S C H E M A  -  D A T A   S T R U C T U R E
 const userSchema = new Schema(
   {
@@ -10,7 +10,7 @@ const userSchema = new Schema(
       lastName: { type: String, required: true },
       email: { type: String, required: true, unique: true },
       password: { type: String, required: true },
-      avatar: { type: String, default: ""},
+      avatar: { type: String, default: "" },
       description: { type: String, default: "" },
       goal: { type: String, default: "" },
       position: { type: String, default: "" },
@@ -42,7 +42,7 @@ const userSchema = new Schema(
       isVerified: { type: Boolean, default: false },
       isVerifiedTCP: { type: Boolean, default: false }, // TCP = To Change Password;
       darkMode: { type: Boolean, default: false },
-      colorTheme: [{ type: String}],
+      colorTheme: [{ type: String }],
       firstLogin: { type: Boolean, default: true }, // for the Congrats Component
       loginCount: { type: Number, default: 0 },
     },
@@ -55,6 +55,13 @@ const userSchema = new Schema(
   },
   { strictQuery: true, timestamps: true }
 );
+
+// Hidden properties of Mongoose Objects in the Node.js JSON Responses (Responses)
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
 
 // M O D E L - T E M P L A T E   F O R   D B   E N T R I E S
 const UserModel = model("User", userSchema, "users");

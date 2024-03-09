@@ -3,7 +3,7 @@
 
 // //========================
 
-// // CHECK IF USER IS ADMIN
+// CHECK IF USER IS ADMIN
 // export async function admin (req, res, next) {
 //   try {
 //     const user = await UserModel.findById(req.token.userId)
@@ -17,4 +17,3 @@
 //     next(err);
 //   }
 // };
-

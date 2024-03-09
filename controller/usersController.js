@@ -1,58 +1,67 @@
 // I M P O R T:  E X T E R N A L  D E P E N D E N C I E S
-import * as dotenv from "dotenv";
-dotenv.config();
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import sgMail from "@sendgrid/mail";
+// import * as dotenv from "dotenv";
+// dotenv.config();
+// import sgMail from "@sendgrid/mail";
 import * as url from "url";
 const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
 import { v2 as cloudinary } from "cloudinary";
 import { unlink } from "fs/promises";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 // I M P O R T:  F U N C T I O N S
 import UserModel from "../models/userModel.js";
 import NotificationModel from "../models/notificationModel.js";
 import ProjectModel from "../models/projectModel.js";
 import MessageModel from "../models/messageModel.js";
+import { sendMail } from "../services/nodeMailer/nodeMailerConfig.js";
 
-// I M P O R T  &  D E C L A R E   B C R Y P T   K E Y
-const JWT_KEY = process.env.SECRET_JWT_KEY || "DefaultValue";
-const SENDGRID_KEY = process.env.SENDGRID_API_KEY;
-const SENDGRID_EMAIL = process.env.SENDGRID_EMAIL;
-const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
-const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
-const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
-const BE_HOST = process.env.BE_HOST;
-const FE_HOST = process.env.FE_HOST;
+// I M P O R T:  E N V  O P T I O N S
+import {
+  JWT_KEY,
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
+  CLOUDINARY_CLOUD_NAME,
+  FE_HOST,
+  cookieAge,
+} from "../config/config.js";
+// const JWT_KEY = process.env.SECRET_JWT_KEY || "DefaultValue";
+// const SENDGRID_KEY = process.env.SENDGRID_API_KEY;
+// const SENDGRID_EMAIL = process.env.SENDGRID_EMAIL;
+// const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+// const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
+// const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+// const BE_HOST = process.env.BE_HOST;
+// const FE_HOST = process.env.FE_HOST;
 
 //========================
 
 //  L E G E N D
 //  (N) = CONTROLLER WITH A NOTIFICATION
 
-// ALL USERS (GET)
-export async function getUsers(req, res, next) {
+// ALL USERS (GET) ✅
+export const getUsers = async (req, res, next) => {
   try {
     res.json(await UserModel.find());
   } catch (err) {
     next(err);
   }
-}
+};
 
 // ADD USER (POST) (N)
-export async function addUser(req, res, next) {
+export const addUser = async (req, res, next) => {
   try {
-    let newCreatedUser;
+    // N E W //
+    const kof = "registration"; // kof => "kind of function"
+    let createdUser;
+    // let newCreatedUser;
     const newUser = req.body;
-    // in the UserModel we check if the given email-address is unique
     const hashedPassword = await bcrypt.hash(newUser.profile.password, 10);
     const initials =
       newUser.profile.firstName[0].toUpperCase() +
       newUser.profile.lastName[0].toUpperCase();
-    let createdUser;
 
     if (newUser.profile.isTalent) {
-      // newUser.meta = ["c-DB2","bg-gDB"]
       createdUser = await UserModel.create({
         ...newUser,
         profile: {
@@ -63,9 +72,9 @@ export async function addUser(req, res, next) {
         },
         meta: { colorTheme: ["c-DB2", "bg-gDB"] },
       });
-      newCreatedUser = createdUser;
-      const userId = newCreatedUser._id;
-      // CREATE NOTIFICATION FOR TO INFORM THE USER START //
+      // newCreatedUser = createdUser;
+      const userId = createdUser._id;
+      // CREATE NOTIFICATION TO INFORM THE USER START //
       const newNotification = await NotificationModel.create({
         receiver: userId,
         notText: `Fill out your profile and get easily discovered by recruiters and other talents!`,
@@ -73,7 +82,7 @@ export async function addUser(req, res, next) {
       const updatedUser = await UserModel.findByIdAndUpdate(userId, {
         $push: { notifications: newNotification._id },
       });
-      // CREATE NOTIFICATION FOR TO INFORM THE USER END //
+      // CREATE NOTIFICATION TO INFORM THE USER END //
     }
     if (newUser.profile.isRecruiter) {
       createdUser = await UserModel.create({
@@ -86,8 +95,8 @@ export async function addUser(req, res, next) {
         },
         meta: { colorTheme: ["c-GR1", "bg-gGR1"] },
       });
-      newCreatedUser = createdUser;
-      const userId = newCreatedUser._id;
+      // newCreatedUser = createdUser;
+      const userId = createdUser._id;
       // CREATE NOTIFICATION FOR TO INFORM THE USER START //
       const newNotification = await NotificationModel.create({
         receiver: userId,
@@ -100,37 +109,100 @@ export async function addUser(req, res, next) {
     }
 
     // VERIFY EMAIL IMPLEMENT BEGIN //
-    sgMail.setApiKey(SENDGRID_KEY);
-    const verifyToken = jwt.sign(
-      {
-        email: newUser.email,
-        _id: newCreatedUser._id,
-      },
-      JWT_KEY,
-      { expiresIn: "1h" }
-    );
-    const msg = {
-      to: newUser.profile.email, // Change to your recipient
-      from: SENDGRID_EMAIL, // Change to your verified sender
-      subject: "VERIFICATION of your 'improof' account",
-      // text: `To verify your email, please click on this link: http://localhost:2404/users/verify/${verifyToken}`,
-      html: `
-      <div>
-      <p>Hi ${newUser.profile.firstName}, </p>
+    await sendMail(createdUser, kof);
+    // VERIFY EMAIL IMPLEMENT END //
 
-      <p>We're happy you signed up for 'improof'. To start your journey and explore
-      new projects, please verify your email.</p>
+    // O L D //
 
-      <p style="background-color: orange; border-radius: 7px; width: 80px; height: 20px; text-decoration: none;">
-      <a href="https://improof.info/api/users/verify/${verifyToken}">
-      Verify now</a></p>      
-    
-      <p>Welcome to improof!<br>
-      Your 'improof' Team </p>
-      
-      <div>`,
-    };
-    const response = await sgMail.send(msg);
+    // let newCreatedUser;
+    // const newUser = req.body;
+    // // in the UserModel we check if the given email-address is unique
+    // const hashedPassword = await bcrypt.hash(newUser.profile.password, 10);
+    // const initials =
+    //   newUser.profile.firstName[0].toUpperCase() +
+    //   newUser.profile.lastName[0].toUpperCase();
+    // let createdUser;
+
+    // if (newUser.profile.isTalent) {
+    //   // newUser.meta = ["c-DB2","bg-gDB"]
+    //   createdUser = await UserModel.create({
+    //     ...newUser,
+    //     profile: {
+    //       ...newUser.profile,
+    //       password: hashedPassword,
+    //       isTalent: true,
+    //       initials: initials,
+    //     },
+    //     meta: { colorTheme: ["c-DB2", "bg-gDB"] },
+    //   });
+    //   newCreatedUser = createdUser;
+    //   const userId = newCreatedUser._id;
+    //   // CREATE NOTIFICATION FOR TO INFORM THE USER START //
+    //   const newNotification = await NotificationModel.create({
+    //     receiver: userId,
+    //     notText: `Fill out your profile and get easily discovered by recruiters and other talents!`,
+    //   });
+    //   const updatedUser = await UserModel.findByIdAndUpdate(userId, {
+    //     $push: { notifications: newNotification._id },
+    //   });
+    //   // CREATE NOTIFICATION FOR TO INFORM THE USER END //
+    // }
+    // if (newUser.profile.isRecruiter) {
+    //   createdUser = await UserModel.create({
+    //     ...newUser,
+    //     profile: {
+    //       ...newUser.profile,
+    //       password: hashedPassword,
+    //       isRecruiter: true,
+    //       initials: initials,
+    //     },
+    //     meta: { colorTheme: ["c-GR1", "bg-gGR1"] },
+    //   });
+    //   newCreatedUser = createdUser;
+    //   const userId = newCreatedUser._id;
+    //   // CREATE NOTIFICATION FOR TO INFORM THE USER START //
+    //   const newNotification = await NotificationModel.create({
+    //     receiver: userId,
+    //     notText: `Fill out your profile to give Talents a better impression!`,
+    //   });
+    //   const updatedUser = await UserModel.findByIdAndUpdate(userId, {
+    //     $push: { notifications: newNotification._id },
+    //   });
+    //   // CREATE NOTIFICATION FOR TO INFORM THE USER END //
+    // }
+
+    // VERIFY EMAIL IMPLEMENT BEGIN //
+    // sgMail.setApiKey(SENDGRID_KEY);
+    // const verifyToken = jwt.sign(
+    //   {
+    //     email: newUser.email,
+    //     _id: newCreatedUser._id,
+    //   },
+    //   JWT_KEY,
+    //   { expiresIn: "1h" }
+    // );
+    // const msg = {
+    //   to: newUser.profile.email, // Change to your recipient
+    //   from: SENDGRID_EMAIL, // Change to your verified sender
+    //   subject: "VERIFICATION of your 'improof' account",
+    //   // text: `To verify your email, please click on this link: http://localhost:2404/users/verify/${verifyToken}`,
+    //   html: `
+    //   <div>
+    //   <p>Hi ${newUser.profile.firstName}, </p>
+
+    //   <p>We're happy you signed up for 'improof'. To start your journey and explore
+    //   new projects, please verify your email.</p>
+
+    //   <p style="background-color: orange; border-radius: 7px; width: 80px; height: 20px; text-decoration: none;">
+    //   <a href="https://improof.info/api/users/verify/${verifyToken}">
+    //   Verify now</a></p>
+
+    //   <p>Welcome to improof!<br>
+    //   Your 'improof' Team </p>
+
+    //   <div>`,
+    // };
+    // const response = await sgMail.send(msg);
     // VERIFY EMAIL IMPLEMENT END //
 
     res.status(201).json({
@@ -142,24 +214,23 @@ export async function addUser(req, res, next) {
   } catch (err) {
     next(err);
   }
-}
+};
 
 // VERIFY EMAIL FOR USER ACCOUNT (GET)
 export async function verifyEmail(req, res, next) {
   try {
-    const verifyToken = req.params.token;
-    const decodedVerifyToken = jwt.verify(verifyToken, JWT_KEY);
-    const id = decodedVerifyToken._id;
-    const user = await UserModel.findById(id);
+    const { token } = req.params;
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_KEY);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid or expired token." });
+    }
+    const id = decodedToken._id;
+    const searchedUser = await UserModel.findById(id);
     const updatedUser = await UserModel.findByIdAndUpdate(id, {
-      meta: { ...user.meta, isVerified: true },
+      meta: { ...searchedUser.meta, isVerified: true },
     });
-    // res.status(200).json({
-    //   message: "E-Mail is now SUCCESSFULLY verified!",
-    //   status: true,
-    //   data: "",
-    //   user: updatedUser,
-    // });
     res.redirect(`https://improof.info`);
     // if we have a frontend, we can direct the successful verification to the login page
   } catch (err) {
@@ -221,10 +292,9 @@ export async function login(req, res, next) {
     );
 
     // INSERT COOKIE CODE START //
-    const oneHour = 1000 * 60 * 60;
     res
       .cookie("loginCookie", token, {
-        maxAge: oneHour * 24,
+        maxAge: cookieAge.oneHour,
         httpOnly: true,
         sameSite: "none",
         secure: true,
@@ -318,9 +388,10 @@ export async function logout(req, res, next) {
 // FORGOT PASSWORD (POST)
 export async function forgotPassword(req, res, next) {
   try {
-    const userData = req.body;
+    const kof = "forgotPassword"; // kof => "kind of function"
+    const { email } = req.body;
     const userFromDb = await UserModel.findOne({
-      "profile.email": userData.profile.email,
+      "profile.email": email,
     });
     if (!userFromDb) {
       const err = new Error("There is no user with this email!");
@@ -329,37 +400,7 @@ export async function forgotPassword(req, res, next) {
     }
 
     // VERIFY EMAIL IMPLEMENT BEGIN //
-    sgMail.setApiKey(SENDGRID_KEY);
-    const verifyToken = jwt.sign(
-      { email: userData.email, _id: userFromDb._id },
-      JWT_KEY,
-      { expiresIn: "1h" }
-    );
-    const msg = {
-      to: userFromDb.profile.email, // Change to your recipient
-      from: SENDGRID_EMAIL, // Change to your verified sender
-      subject: "SET A NEW PASSWORD for your 'improof' account",
-      // text: `To change your password, please click on this link: ${BE_HOST}/users/setnewpassword/${verifyToken}`,
-      html: `
-      <div>
-      <p>Hi ${userFromDb.profile.firstName}, </p>
-
-      <p>a request has been received to change the password 
-      for your 'improof' account</p>
-
-      <p style="background-color: orange; border-radius: 7px; width: 120px; height: 20px; text-decoration: none;">
-      <a href="https://www.improof-be.onrender.com/users/reset/${verifyToken}">
-      Reset password</a></p>      
-    
-      <p>If you did not initiate this request, please contact 
-      us immediately at ${SENDGRID_EMAIL}</p>
-
-      <p>Thank you,<br>
-      your improof team </p>
-      
-      <div>`,
-    };
-    const response = await sgMail.send(msg);
+    await sendMail(userFromDb, kof);
     // VERIFY EMAIL IMPLEMENT END //
     res.status(201).json({
       message: "We send you an Email to change your password.",
@@ -374,20 +415,22 @@ export async function forgotPassword(req, res, next) {
 // VERIFY RESET TOKEN (GET)
 export async function verifyResetToken(req, res, next) {
   try {
-    const verifyToken = req.params.token;
-    const decodedVerifyToken = jwt.verify(verifyToken, JWT_KEY);
-    const id = decodedVerifyToken._id;
-    const user = await UserModel.findById(id);
-    const updatedUser = await UserModel.findByIdAndUpdate(id, {
-      meta: { ...user.meta, isVerifiedTCP: true },
-    });
-    // RES FOR BACKEND TESTING
-    res.status(200).json({
-      message: "Reset token SUCCESSFULLY verified!",
-      status: true,
-      data: "",
-    });
-    // res.redirect(`${FE_HOST}/setnewpassword`);
+    const { token } = req.params;
+    const decodedToken = jwt.verify(token, JWT_KEY);
+    const id = decodedToken._id;
+    await UserModel.findByIdAndUpdate(
+      id,
+      { "meta.isVerifiedTCP": true },
+      { new: true }
+    );
+    res
+      .cookie("resetToken", token, {
+        maxAge: cookieAge.oneDay,
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+      })
+      .redirect(`${FE_HOST}setnewpassword`);
   } catch (err) {
     next(err);
   }
@@ -397,36 +440,51 @@ export async function verifyResetToken(req, res, next) {
 export async function setNewPassword(req, res, next) {
   try {
     // CHECK IF ACCOUNT IS VERIFIED TO SET NEW PASSWORD
-    const userData = req.body;
-    const userFromDb = await UserModel.findOne({
-      "profile.email": userData.profile.email,
-    });
-    if (!userFromDb.meta.isVerifiedTCP) {
-      res.status(422).json({
-        message: "Account NOT verified to change password",
-        status: false,
-        data: "",
-      });
-    }
-    // CHANGE AND ENCRYPT NEW PASSWORD
-    const id = userFromDb._id;
-    const newPassword = req.body.profile.password;
-    if (newPassword) {
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      const updatedUser = await UserModel.findByIdAndUpdate(id, {
-        profile: { ...userFromDb.profile, password: hashedPassword },
-        meta: { ...userFromDb.meta, isVerifiedTCP: false },
-      });
-      res.status(200).json({
-        message: "Set new Password was SUCCESSFUL!",
-        status: true,
-        data: "",
-      });
+    const token = req.cookies.resetToken;
+    console.log("token: ", token);
+    const { password } = req.body;
+    let decodedToken = jwt.verify(token, JWT_KEY);
+    // let user;
+    // let id;
+    // if (!password) {
+    //   // After click on Email Link !
+    //   if (decodedToken) {
+    //     id = decodedToken._id;
+    //     user = await UserModel.findByIdAndUpdate(
+    //       id,
+    //       { "meta.isVerifiedTCP": true },
+    //       { new: true }
+    //     );
+    //     // return res.redirect(`${FE_HOST}setnewpassword/${token}`);
+    //     return res
+    //       .status(201)
+    //       .json({ message: "User is now verified to change password." });
+    //     // return res.status(201).json({
+    //     //   message: "User is now verified to change password.",
+    //     //   redirectUrl: `${FE_HOST}/setnewpassword/${token}`,
+    //     // });
+    //   } else {
+    //     return res.status(400).json({ message: "Invalid or expired token." });
+    //   }
+    // }
+    // If you are here, you clicked on the link in the email and set isVerifiedTCP to "true"
+    const id = decodedToken._id;
+    const user = await UserModel.findById(id);
+    if (password && user.meta.isVerifiedTCP) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await UserModel.findByIdAndUpdate(
+        id,
+        {
+          "profile.password": hashedPassword,
+          "meta.isVerifiedTCP": false,
+        },
+        { new: true }
+      );
+      res.json({ message: "Set new Password was SUCCESSFUL!" });
     } else {
-      res.status(422).json({
-        message: "Set new Password FAILED!",
-        status: false,
-        data: "",
+      res.status(400).json({
+        message:
+          "Password change failed. Please ensure you have verified your email.",
       });
     }
   } catch (err) {
@@ -495,94 +553,68 @@ export async function getUser(req, res, next) {
 // UPDATE A USER (PATCH)
 export async function updateUser(req, res, next) {
   try {
-    // DEFINE NEEDED VARIABLES //
     const userData = JSON.parse(req.body.data);
     const id = req.params.id;
     let oldUserData = await UserModel.findById(id);
-    // DEFINE NEEDED VARIABLES //
 
-    // IMPORTANT: A additionally check (after auth) if the given id is the same id as in the token. We do that, because we want that the user could only change his own profile.
-    // CHECK IF AUTHORIZED START //
     if (id !== req.token.userId) {
       const err = new Error("Not Authorized!");
       err.statusCode = 401;
       throw err;
     }
-    // CHECK IF AUTHORIZED END//
 
-    // const newUser = await UserModel.findByIdAndUpdate(id, userData)
-    // .populate(["starProjects", "myProjects", "notifications", "conversations", "follows"])
+    const updateField = async (field, value) => {
+      if (value) {
+        oldUserData = await UserModel.findByIdAndUpdate(
+          id,
+          { $set: { [field]: value } },
+          { new: true }
+        );
+      }
+    };
 
-    // ## CHECK & UPDATE EVERY GIVEN PARAMETER START ## //
-    // ** UPDATE PROFILE START ** //
-    // CHECK FIRSTNAME START //
-    if (userData.profile.firstName) {
-      const firstName = userData.profile.firstName;
-      const lastName = oldUserData.profile.lastName;
-      const initials = firstName[0].toUpperCase() + lastName[0].toUpperCase();
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        {
-          profile: {
-            ...oldUserData.profile,
-            firstName: firstName,
-            initials: initials,
-          },
-        },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK FIRSTNAME END //
+    const updateFields = async (fields, data, prefix = "") => {
+      for (const field of fields) {
+        if (data.hasOwnProperty(field)) {
+          const nestedField = `${prefix}${field}`;
+          await updateField(nestedField, data[field]);
+        }
+      }
+    };
 
-    // CHECK LASTNAME START //
-    if (userData.profile.lastName) {
-      const firstName = oldUserData.profile.firstName;
-      const lastName = userData.profile.lastName;
-      const initials = firstName[0].toUpperCase() + lastName[0].toUpperCase();
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        {
-          profile: {
-            ...oldUserData.profile,
-            lastName: lastName,
-            initials: initials,
-          },
-        },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK LASTNAME END //
+    const profileFields = [
+      "firstName",
+      "lastName",
+      "email",
+      "password",
+      "description",
+      "goal",
+      "position",
+      "category",
+      "toolsAndSkills",
+      "avatar",
+    ];
+    await updateFields(profileFields, userData.profile, "profile.");
 
-    // CHECK EMAIL START //
-    if (userData.profile.email) {
-      const email = userData.profile.email;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { profile: { ...oldUserData.profile, email: email } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK EMAIL END //
+    const contactFields = [
+      "mobile",
+      "website",
+      "online1",
+      "online2",
+      "online3",
+      "company",
+    ];
+    await updateFields(contactFields, userData.contact, "contact.");
 
-    // CHECK PASSWORD START //
-    if (userData.profile.password) {
-      const hashedPassword = await bcrypt.hash(userData.profile.password, 10);
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { profile: { ...oldUserData.profile, password: hashedPassword } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK PASSWORD END //
+    const locationFields = ["street", "zip", "city"];
+    await updateFields(locationFields, userData.location, "location.");
 
-    // CHECK AVATAR BEGIN //
+    const metaFields = ["darkMode", "colorTheme"];
+    await updateFields(metaFields, userData.meta, "meta.");
+
     if (req.file) {
       const allowedMimetypes = ["png", "jpg", "jpeg", "tiff", "gif", "bmp"];
-      if (allowedMimetypes.some(el => req.file.mimetype.includes(el))) {
+      if (allowedMimetypes.some((el) => req.file.mimetype.includes(el))) {
         cloudinary.config({
           cloud_name: CLOUDINARY_CLOUD_NAME,
           api_key: CLOUDINARY_API_KEY,
@@ -593,220 +625,11 @@ export async function updateUser(req, res, next) {
           use_filename: true,
         });
         unlink(absFilePath);
-        const user = await UserModel.findByIdAndUpdate(
-          id,
-          {
-            "profile.avatar": response.secure_url,
-          },
-          { new: true }
-        );
-        oldUserData = user;
+        await updateField("profile.avatar", response.secure_url);
       }
     }
-    // CHECK AVATAR END //
 
-    // CHECK DESCRIPTION START //
-    if (userData.profile.description) {
-      const description = userData.profile.description;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { profile: { ...oldUserData.profile, description: description } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK DESCRIPTION END //
-
-    // CHECK GOAL START //
-    if (userData.profile.goal) {
-      const goal = userData.profile.goal;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { profile: { ...oldUserData.profile, goal: goal } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK GOAL END //
-
-    // CHECK POSITION START //
-    if (userData.profile.position) {
-      const position = userData.profile.position;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { profile: { ...oldUserData.profile, position: position } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK POSITION END //
-
-    // CHECK FOR CATEGORY START //
-    if (userData.profile.category) {
-      const category = userData.profile.category;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { profile: { ...oldUserData.profile, category: category } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK FOR CATEGORY END //
-
-    // CHECK TOOLSANDSKILLS START //
-    if (userData.profile.toolsAndSkills) {
-      const toolsAndSkills = userData.profile.toolsAndSkills;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { profile: { ...oldUserData.profile, toolsAndSkills: toolsAndSkills } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK TOOLSANDSKILLS END //
-    // ** UPDATE PROFILE END ** //
-
-    // ** UPDATE CONTACT START ** //
-    // CHECK MOBILE START //
-    if (userData.contact.mobile) {
-      const mobile = userData.contact.mobile;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { contact: { ...oldUserData.contact, mobile: mobile } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK MOBILE END //
-
-    // CHECK WEBSITE START //
-    if (userData.contact.website) {
-      const website = userData.contact.website;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { contact: { ...oldUserData.contact, website: website } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK WEBSITE END //
-
-    // CHECK ONLINE1 START //
-    if (userData.contact.online1) {
-      const online1 = userData.contact.online1;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { contact: { ...oldUserData.contact, online1: online1 } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK ONLINE1 END //
-
-    // CHECK ONLINE2 START //
-    if (userData.contact.online2) {
-      const online2 = userData.contact.online2;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { contact: { ...oldUserData.contact, online2: online2 } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK ONLINE2 END //
-
-    // CHECK ONLINE3 START //
-    if (userData.contact.online3) {
-      const online3 = userData.contact.online3;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { contact: { ...oldUserData.contact, online3: online3 } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK ONLINE3 END //
-
-    // CHECK COMPANY START //
-    if (userData.contact.company) {
-      const company = userData.contact.company;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { contact: { ...oldUserData.contact, company: company } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK COMPANY END //
-    // ** UPDATE CONTACT END ** //
-
-    // ** UPDATE LOCATION START ** //
-    // CHECK STREET START //
-    if (userData.location.street) {
-      const street = userData.location.street;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { location: { ...oldUserData.location, street: street } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK STREET END //
-
-    // CHECK ZIP START //
-    // console.log('userData.location.zip', userData.location.zip);
-    if (userData.location.zip) {
-      const zip = userData.location.zip;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { location: { ...oldUserData.location, zip: zip } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK ZIP END //
-
-    // CHECK CITY START //
-    if (userData.location.city) {
-      const city = userData.location.city;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { location: { ...oldUserData.location, city: city } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK CITY END //
-    // ** UPDATE LOCATION END ** //
-
-    // ** UPDATE META START ** //
-    // CHECK DARKMODE START //
-    if (userData.meta.darkMode) {
-      const darkMode = userData.meta.darkMode;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { meta: { ...oldUserData.meta, darkMode: darkMode } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK DARKMODE END //
-
-    // CHECK COLORTHEME START //
-    if (userData.meta.colorTheme) {
-      const colorTheme = userData.meta.colorTheme;
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { meta: { ...oldUserData.meta, colorTheme: colorTheme } },
-        { new: true }
-      );
-      oldUserData = user;
-    }
-    // CHECK COLORTHEME END //
-    // ** UPDATE META END ** //
-    // ## CHECK & UPDATE EVERY GIVEN PARAMETER END ## //
     const updatedUser = await UserModel.findById(id);
-    // .populate(["starProjects", "myProjects", "notifications", "conversations", "follows"]);
     res.status(200).json({
       userData: updatedUser,
       message: "Update was SUCCESSFUL!",
@@ -966,19 +789,52 @@ export async function deleteUser(req, res, next) {
 // SET FIRST LOGIN
 export async function setFirstLogin(req, res, next) {
   try {
-    const userId = req.params.userId
-    const user = await UserModel.findById(userId)
+    const userId = req.params.userId;
+    const user = await UserModel.findById(userId);
     // console.log(userId);
     await UserModel.findByIdAndUpdate(userId, {
-      meta:{
+      meta: {
         ...user.meta,
-        firstLogin:false,
-        loginCount:2
-      }
-      
-    })
-    res.json({message:"alles ok!"})
+        firstLogin: false,
+        loginCount: 2,
+      },
+    });
+    res.json({ message: "alles ok!" });
   } catch (error) {
-    next(error)
+    next(error);
   }
 }
+
+// ALT //
+// const userData = req.body;
+// const userFromDb = await UserModel.findOne({
+//   "profile.email": userData.profile.email,
+// });
+// if (!userFromDb.meta.isVerifiedTCP) {
+//   res.status(422).json({
+//     message: "Account NOT verified to change password",
+//     status: false,
+//     data: "",
+//   });
+// }
+// // CHANGE AND ENCRYPT NEW PASSWORD
+// const id = userFromDb._id;
+// const newPassword = req.body.profile.password;
+// if (newPassword) {
+//   const hashedPassword = await bcrypt.hash(newPassword, 10);
+//   const updatedUser = await UserModel.findByIdAndUpdate(id, {
+//     profile: { ...userFromDb.profile, password: hashedPassword },
+//     meta: { ...userFromDb.meta, isVerifiedTCP: false },
+//   });
+//   res.status(200).json({
+//     message: "Set new Password was SUCCESSFUL!",
+//     status: true,
+//     data: "",
+//   });
+// } else {
+//   res.status(422).json({
+//     message: "Set new Password FAILED!",
+//     status: false,
+//     data: "",
+//   });
+// }

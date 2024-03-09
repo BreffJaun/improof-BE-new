@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import sgMail from "@sendgrid/mail";
+// import sgMail from "@sendgrid/mail";
 import * as url from "url";
 const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
 import { v2 as cloudinary } from "cloudinary";
@@ -59,7 +59,7 @@ export async function addProject(req, res, next) {
     // THUMBNAIL IMPLEMENT BEGIN //
     if (req.file) {
       const allowedMimetypes = ["png", "jpg", "jpeg", "tiff", "gif", "bmp"];
-      if (allowedMimetypes.some(el => req.file.mimetype.includes(el))) { 
+      if (allowedMimetypes.some((el) => req.file.mimetype.includes(el))) {
         cloudinary.config({
           cloud_name: CLOUDINARY_CLOUD_NAME,
           api_key: CLOUDINARY_API_KEY,
@@ -74,7 +74,7 @@ export async function addProject(req, res, next) {
           thumbnail: response.secure_url,
         });
       }
-    } 
+    }
     // THUMBNAIL IMPLEMENT END //
 
     // ADD PROJECT TO EVERY TEAMMEMBER
@@ -101,33 +101,33 @@ export async function addProject(req, res, next) {
     // CREATE NOTIFICATION FOR THE NON CREATOR MEMBERS END //
 
     // INVITE EMAIL IMPLEMENT BEGIN //
-    const usersToInvite = newProject.inviteOthers;
-    sgMail.setApiKey(SENDGRID_KEY);
-    usersToInvite.map(async (member) => {
-      const msg = {
-        to: member, // Change to your recipient
-        from: SENDGRID_EMAIL, // Change to your verified sender
-        subject: "INVITATION to 'improof'",
-        // text: `To verify your email, please click on this link: http://localhost:2404/users/verify/${verifyToken}`,
-        html: `
-        <div>
-        <p>Hi, </p>
+    // const usersToInvite = newProject.inviteOthers;
+    // sgMail.setApiKey(SENDGRID_KEY);
+    // usersToInvite.map(async (member) => {
+    //   const msg = {
+    //     to: member, // Change to your recipient
+    //     from: SENDGRID_EMAIL, // Change to your verified sender
+    //     subject: "INVITATION to 'improof'",
+    //     // text: `To verify your email, please click on this link: http://localhost:2404/users/verify/${verifyToken}`,
+    //     html: `
+    //     <div>
+    //     <p>Hi, </p>
 
-        <p>${userName} invited you to join the 'improof-community'.</p>
+    //     <p>${userName} invited you to join the 'improof-community'.</p>
 
-        <p style="background-color: orange; border-radius: 7px; width: 120px; height: 30px; text-decoration: none;">
-        Please register here
-        <a href="${FE_HOST}/register">
-        Register</a></p>      
-        <p>and contact <a href="https://improof-fe.vercel.app/myprofile/${user._id}">
-        ${userName}</a></p>
-      
-        <p>Your 'improof' Team </p>
-        
-        <div>`,
-      };
-      const response = await sgMail.send(msg);
-    });
+    //     <p style="background-color: orange; border-radius: 7px; width: 120px; height: 30px; text-decoration: none;">
+    //     Please register here
+    //     <a href="${FE_HOST}/register">
+    //     Register</a></p>
+    //     <p>and contact <a href="https://improof-fe.vercel.app/myprofile/${user._id}">
+    //     ${userName}</a></p>
+
+    //     <p>Your 'improof' Team </p>
+
+    //     <div>`,
+    //   };
+    //   const response = await sgMail.send(msg);
+    // });
     // INVITE EMAIL IMPLEMENT END //
 
     // CLEAR INVITEOTHERS FROM PROJECT
@@ -363,7 +363,7 @@ export async function updateProject(req, res, next) {
       const allowedMimetypes = ["png", "jpg", "jpeg", "tiff", "gif", "bmp"];
       // console.log(req.file);
       // console.log(fileMimetype);
-      if (allowedMimetypes.some(el => req.file.mimetype.includes(el))) {
+      if (allowedMimetypes.some((el) => req.file.mimetype.includes(el))) {
         cloudinary.config({
           cloud_name: CLOUDINARY_CLOUD_NAME,
           api_key: CLOUDINARY_API_KEY,
@@ -377,7 +377,7 @@ export async function updateProject(req, res, next) {
         const project = await ProjectModel.findByIdAndUpdate(projectId, {
           thumbnail: response.secure_url,
         });
-        oldProjectData = project;        
+        oldProjectData = project;
       }
     }
     // CHECK THUMBNAIL END //
@@ -459,15 +459,15 @@ export async function updateProject(req, res, next) {
       }
       // ADD PROJECT IN NEW MEMBERS & CREATE NOTIFICATION END //
       // DELETE PROJECT FROM FORMER MEMBERS START //
-      if(deletedMembers.length > 0) {
+      if (deletedMembers.length > 0) {
         deletedMembers.forEach(async (member) => {
           await UserModel.findByIdAndUpdate(member, {
-            $pull: {myProjects: projectId}
-          })
-        })
+            $pull: { myProjects: projectId },
+          });
+        });
       }
       // DELETE PROJECT FROM FORMER MEMBERS END //
-      
+
       const project = await ProjectModel.findByIdAndUpdate(
         projectId,
         { team: newTeam },
@@ -500,7 +500,9 @@ export async function updateProject(req, res, next) {
         Please register here
         <a href="${FE_HOST}/register">
         Register</a></p>      
-        <p>and contact <a href="https://improof-fe.vercel.app/myprofile/${user._id}">
+        <p>and contact <a href="https://improof-fe.vercel.app/myprofile/${
+          user._id
+        }">
         ${user.profile.firstName + " " + user.profile.lastName}</a></p>
       
         <p>Your 'improof' Team </p>
