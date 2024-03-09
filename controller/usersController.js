@@ -422,7 +422,7 @@ export async function verifyResetToken(req, res, next) {
         sameSite: "none",
         secure: true,
       })
-      .redirect(`${FE_HOST}setnewpassword`);
+      .redirect(`https://improof.info/setnewpassword`);
   } catch (err) {
     next(err);
   }
@@ -433,33 +433,9 @@ export async function setNewPassword(req, res, next) {
   try {
     // CHECK IF ACCOUNT IS VERIFIED TO SET NEW PASSWORD
     const token = req.cookies.resetToken;
-    console.log("token: ", token);
+    // console.log("token: ", token);
     const { password } = req.body;
     let decodedToken = jwt.verify(token, JWT_KEY);
-    // let user;
-    // let id;
-    // if (!password) {
-    //   // After click on Email Link !
-    //   if (decodedToken) {
-    //     id = decodedToken._id;
-    //     user = await UserModel.findByIdAndUpdate(
-    //       id,
-    //       { "meta.isVerifiedTCP": true },
-    //       { new: true }
-    //     );
-    //     // return res.redirect(`${FE_HOST}setnewpassword/${token}`);
-    //     return res
-    //       .status(201)
-    //       .json({ message: "User is now verified to change password." });
-    //     // return res.status(201).json({
-    //     //   message: "User is now verified to change password.",
-    //     //   redirectUrl: `${FE_HOST}/setnewpassword/${token}`,
-    //     // });
-    //   } else {
-    //     return res.status(400).json({ message: "Invalid or expired token." });
-    //   }
-    // }
-    // If you are here, you clicked on the link in the email and set isVerifiedTCP to "true"
     const id = decodedToken._id;
     const user = await UserModel.findById(id);
     if (password && user.meta.isVerifiedTCP) {
