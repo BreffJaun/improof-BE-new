@@ -1,11 +1,4 @@
 // I M P O R T:  E X T E R N A L  D E P E N D E N C I E S
-// import * as dotenv from "dotenv";
-// dotenv.config();
-// import mongoose from "mongoose";
-// import express from "express";
-// import cors from "cors";
-// import morgan from "morgan";
-// import cookieParser from "cookie-parser";
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
@@ -40,36 +33,20 @@ app.use(express.static("public"));
 // M I D D L E W A R E
 
 // SERVER MIDDLEWARE
-// app.use(express.json());
-// app.use(cookieParser());
-// // app.use(cors()) auskommentieren für IONOS
-// app.use(
-//   cors({
-//     origin: [
-//       "https://improof.onrender.com",
-//       "http://127.0.0.1:5173",
-//       "http://localhost:5173",
-//       "https://improof-fe.vercel.app",
-//     ],
-//     credentials: true,
-//   })
-// );
-// app.use(morgan("dev"));
-
 app.use(express.static("public"));
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // app.use(cors()) auskommentieren für IONOS
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
 
 // ROUTER MIDDLEWARE
 
 // Ignore-favicon-handler => delete it in case of existing frontend
-app.get("/favicon.ico", (req, res) => {
-  res.status(204).end(); // 204 No Content
-});
+// app.get("/favicon.ico", (req, res) => {
+//   res.status(204).end(); // 204 No Content
+// });
 
 // COUNTER
 app.use("/api/counters", counterRouter);

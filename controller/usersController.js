@@ -25,14 +25,6 @@ import {
   FE_HOST,
   cookieAge,
 } from "../config/config.js";
-// const JWT_KEY = process.env.SECRET_JWT_KEY || "DefaultValue";
-// const SENDGRID_KEY = process.env.SENDGRID_API_KEY;
-// const SENDGRID_EMAIL = process.env.SENDGRID_EMAIL;
-// const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
-// const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
-// const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
-// const BE_HOST = process.env.BE_HOST;
-// const FE_HOST = process.env.FE_HOST;
 
 //========================
 
