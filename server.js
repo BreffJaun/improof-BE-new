@@ -28,7 +28,6 @@ import counterRouter from "./routes/counters.js";
 
 // C R E A T E  S E R V E R
 const app = express();
-app.use(express.static("public"));
 
 // M I D D L E W A R E
 
