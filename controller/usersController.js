@@ -224,7 +224,7 @@ export async function verifyEmail(req, res, next) {
       meta: { ...searchedUser.meta, isVerified: true },
     });
     res.redirect(`https://improof.info`);
-    // if we have a frontend, we can direct the successful verification to the login page
+    // if we have a frontend, we can direct the successful verification to the login page. Otherwise use a redirect to a localhost or an easy response to the backend server
   } catch (err) {
     next(err);
   }

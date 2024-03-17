@@ -34,7 +34,7 @@ const app = express();
 // SERVER MIDDLEWARE
 app.use(express.static("public"));
 app.use(morgan("dev"));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // app.use(cors()) auskommentieren für IONOS
